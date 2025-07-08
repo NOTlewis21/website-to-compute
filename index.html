@@ -1,56 +1,627 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="es">
 <head>
-  <!-- 
-      This is an HTML comment
-      You can write text in a comment and the content won't be visible in the page
-    -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Taskly - Versión Web</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #fefcf8;
+      color: #333;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
+    body.dark-mode {
+      background-color: #1e1e1e;
+      color: #f5f5f5;
+    }
+    header {
+      background-color: #f5ede0;
+      padding: 0.8rem;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background-color: #f3e8d9;
+      padding: 0.75rem 0;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    nav button {
+      font-size: 0.9rem;
+      color: #5d4037;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: none;
+      background: none;
+    }
+    nav button span.icon {
+      font-size: 1.3rem;
+      margin-bottom: 2px;
+    }
 
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="https://glitch.com/favicon.ico" />
+    .container {
+      padding: 0.75rem;
+      padding-bottom: 70px;
+    }
+    .section {
+      display: none;
+      margin-top: 1rem;
+    }
+    .section.active {
+      display: block;
+    }
 
-  <!--
-      This is the page head - it contains info the browser uses
-      Like the title, which appears on the browser tab but not inside the page
-      Further down you'll see the content that displays in the page
-    -->
-  <title>Hello World!</title>
+    /* Estilo de botones */
+    button {
+      background-color: #dec9a5;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      color: #333;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #cbb68f;
+    }
 
-  <!-- The website stylesheet -->
-  <link rel="stylesheet" href="/style.css" />
+    /* Tareas */
+    .task-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      padding: 0.6rem;
+      margin: 0.5rem 0;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      cursor: grab;
+    }
+    .task-text {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .delete-btn {
+      background: transparent;
+      border: none;
+      color: #888;
+      font-size: 1.2rem;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    .completed .task-text {
+      text-decoration: line-through;
+      color: #888;
+    }
 
-  <!-- The website JavaScript file -->
-  <script src="/script.js" defer></script>
+    /* Prioridades */
+    .priority-low { color: green; }
+    .priority-medium { color: orange; }
+    .priority-high { color: red; }
+
+    /* Formulario de nueva tarea */
+    #task-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    #task-form input[type="text"],
+    #task-form input[type="date"] {
+      padding: 0.5rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    #task-form select {
+      padding: 0.5rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    /* Calendario */
+    .calendar-month {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #5d4037;
+      text-align: center;
+    }
+    .calendar-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      font-weight: bold;
+      background-color: #d1b08b;
+      color: #fff;
+      padding: 5px 0;
+      width: 100%;
+      text-align: center;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      justify-items: center;
+      text-align: center;
+      margin-top: 10px;
+    }
+    .calendar div {
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      position: relative;
+    }
+    .calendar div:hover {
+      background-color: #dec9a5;
+    }
+    .calendar-day.today {
+      background-color: #e0d2bd;
+      color: #fff;
+    }
+    .calendar-day.selected {
+      background-color: #dec9a5;
+      color: #fff;
+    }
+    .task-count-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background-color: #ff4d4d;
+      color: white;
+      font-size: 0.6rem;
+      border-radius: 50%;
+      padding: 2px 5px;
+    }
+
+    /* Modo oscuro */
+    .dark-mode .task-container,
+    .dark-mode .calendar-day,
+    .dark-mode #task-form input,
+    .dark-mode #task-form select {
+      background-color: #3a3a3a !important;
+      color: #f5f5f5;
+    }
+    .dark-mode .calendar-header {
+      background-color: #2d2d2d !important;
+    }
+    .dark-mode nav,
+    .dark-mode header {
+      background-color: #2d2d2d !important;
+      color: #f5f5f5;
+    }
+    .dark-mode .calendar-day.selected {
+      background-color: #5a5a5a !important;
+    }
+
+    /* Notificación */
+    #notification {
+      position: fixed;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #dec9a5;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      z-index: 1000;
+      opacity: 1;
+      transition: opacity 0.5s ease-out;
+    }
+    #notification.hidden {
+      display: none;
+    }
+
+    /* Botón flotante */
+    #add-task-btn {
+      position: fixed;
+      bottom: 70px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background-color: #dec9a5;
+      border-radius: 50%;
+      border: none;
+      font-size: 2rem;
+      color: #fff;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      z-index: 999;
+    }
+
+    /* Botón modo oscuro */
+    #theme-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      z-index: 999;
+    }
+  </style>
 </head>
-
 <body>
-  <!--
-      The body includes the content you see in the page
-      Each element is defined using tags, like this <div></div>
-      The attributes like class="wrapper" let us style elements in the CSS
-    -->
-  <div class="wrapper">
-    <div class="content" role="main">
-      <h1 class="title">Oh hi website!</h1>
-      <img src="/cool-website.svg" class="illustration" alt="cool website" />
-      <div class="instructions">
-        <p>
-          Fork <a href="https://github.com/glitchdotcom/website-to-compute">this project</a> and open it in a GitHub Codespace.
-        </p>
-        <p> Follow the steps in the README to deploy your new website to Fastly in a few steps!
-        </p>
+  <header>Taskly</header>
 
+  <!-- Botón de modo oscuro -->
+  <button id="theme-toggle" onclick="toggleTheme()">🌙</button>
+
+  <div class="container" id="content">
+    <div class="section active" id="tasks">
+      <h2>Tareas</h2>
+      <div style="margin-bottom: 0.5rem;">
+        <button onclick="filterTasks('all')">Todas</button>
+        <button onclick="filterTasks('pending')">Pendientes</button>
+        <button onclick="filterTasks('completed')">Completadas</button>
       </div>
-
-      <footer class="footer">
-        <div>
-          <a class="remix" href="https://github.com/glitchdotcom/website-to-compute">🚧 Get your own site</a>
-        </div>
-      </footer>
+      <p id="task-count">Cargando...</p>
+      <form id="task-form" onsubmit="addTask(event)">
+        <input type="text" id="new-task" placeholder="Nueva tarea..." required />
+        <input type="date" id="task-date" />
+        <select id="task-priority">
+          <option value="low">Prioridad baja</option>
+          <option value="medium" selected>Prioridad media</option>
+          <option value="high">Prioridad alta</option>
+        </select>
+        <button type="submit">Agregar</button>
+      </form>
+      <div id="task-list" ondragover="dragOverHandler(event)"></div>
     </div>
-  </div>
-</body>
 
+    <div class="section" id="calendar">
+      <h2>Calendario</h2>
+      <div id="calendar-month" class="calendar-month"></div>
+      <div class="calendar-header">
+        <div>Dom</div><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div>
+      </div>
+      <div id="calendar-display"></div>
+      <div style="text-align:center; margin-top: 10px;">
+        <button onclick="changeMonth(-1)">← Anterior</button>
+        <button onclick="changeMonth(1)">Siguiente →</button>
+      </div>
+    </div>
+
+    <div class="section" id="emails">
+      <h2>Correos recientes</h2>
+      <div class="email">Asunto: Reunión mañana - De: jefe@empresa.com</div>
+      <div class="email">Asunto: Oferta especial - De: tienda@promos.com</div>
+    </div>
+
+    <div class="section" id="chat">
+      <h2>Chat (modo demo)</h2>
+      <div class="chat" id="chat-box">
+        <div class="chat-msg ai">Hola, ¿en qué puedo ayudarte?</div>
+      </div>
+      <div class="input-bar">
+        <input type="text" id="chat-input" placeholder="Escribe algo..." />
+        <button onclick="sendMessage()">Enviar</button>
+      </div>
+    </div>
+
+    <!-- Notificación -->
+    <div id="notification" class="hidden">Tarea guardada</div>
+
+    <!-- Botón flotante -->
+    <button id="add-task-btn" onclick="showSection('tasks'); setTimeout(() => document.getElementById('new-task').focus(), 300);">+</button>
+  </div>
+
+  <nav>
+    <button onclick="showSection('tasks')">
+      <span class="icon">📝</span>Tareas
+    </button>
+    <button onclick="showSection('calendar')">
+      <span class="icon">📅</span>Calendario
+    </button>
+    <button onclick="showSection('emails')">
+      <span class="icon">✉️</span>Correos
+    </button>
+    <button onclick="showSection('chat')">
+      <span class="icon">💬</span>Chat
+    </button>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs @1.15.0/Sortable.min.js"></script>
+  <script>
+    const currentDate = new Date();
+    let currentMonth = currentDate.getMonth();
+    let currentYear = currentDate.getFullYear();
+
+    function showSection(sectionId) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(sectionId).classList.add('active');
+      if (sectionId === 'calendar') {
+        renderCalendar();
+      }
+    }
+
+    function createTaskElement(taskData) {
+      const container = document.createElement('div');
+      container.className = 'task-container';
+      container.setAttribute('draggable', true);
+
+      // Texto de la tarea
+      const textSpan = document.createElement('span');
+      textSpan.className = 'task-text';
+      textSpan.textContent = taskData.text;
+      if (taskData.completed) container.classList.add('completed');
+
+      // Prioridad
+      const prioritySpan = document.createElement('span');
+      prioritySpan.className = `priority-${taskData.priority}`;
+      prioritySpan.textContent = `(${taskData.priority.charAt(0).toUpperCase() + taskData.priority.slice(1)})`;
+      prioritySpan.style.marginLeft = '8px';
+      prioritySpan.style.fontSize = '0.8rem';
+
+      // Fecha
+      if (taskData.date) {
+        const dateSpan = document.createElement('span');
+        dateSpan.textContent = ` • ${taskData.date}`;
+        dateSpan.style.fontSize = '0.8rem';
+        prioritySpan.appendChild(dateSpan);
+      }
+
+      textSpan.appendChild(prioritySpan);
+
+      // Editar al doble clic
+      textSpan.ondblclick = () => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = taskData.text;
+        input.style.flex = '1';
+        input.style.border = '1px solid #ccc';
+        input.style.padding = '0.4rem';
+        input.style.borderRadius = '5px';
+
+        container.innerHTML = '';
+        container.appendChild(input);
+        input.focus();
+
+        input.onblur = () => {
+          taskData.text = input.value;
+          saveTasks();
+          renderCalendar();
+          loadTasks();
+        };
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            input.blur();
+          }
+        };
+      };
+
+      // Eliminar
+      const deleteBtn = document.createElement('button');
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.onclick = () => {
+        container.remove();
+        saveTasks();
+        renderCalendar();
+        updateTaskCount();
+      };
+
+      // Completar
+      textSpan.onclick = () => {
+        container.classList.toggle('completed');
+        taskData.completed = container.classList.contains('completed');
+        saveTasks();
+        renderCalendar();
+        updateTaskCount();
+      };
+
+      container.appendChild(textSpan);
+      container.appendChild(deleteBtn);
+      return container;
+    }
+
+    function addTask(event) {
+      event.preventDefault();
+      const input = document.getElementById('new-task');
+      const dateInput = document.getElementById('task-date');
+      const prioritySelect = document.getElementById('task-priority');
+      const taskText = input.value.trim();
+      const taskDate = dateInput.value;
+      const taskPriority = prioritySelect.value;
+
+      if (taskText) {
+        const taskList = document.getElementById('task-list');
+        const taskData = {
+          text: taskText,
+          completed: false,
+          date: taskDate,
+          priority: taskPriority
+        };
+        const el = createTaskElement(taskData);
+        taskList.appendChild(el);
+        input.value = '';
+        dateInput.value = '';
+        prioritySelect.value = 'medium';
+        saveTasks();
+        renderCalendar();
+        updateTaskCount();
+        showNotification("Tarea agregada");
+      }
+    }
+
+    function loadTasks() {
+      const taskList = document.getElementById('task-list');
+      const storedTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+      taskList.innerHTML = '';
+      storedTasks.forEach(task => {
+        const el = createTaskElement(task);
+        taskList.appendChild(el);
+      });
+      new Sortable(taskList, {
+        animation: 150,
+        ghostClass: 'blue-background-class'
+      });
+      updateTaskCount();
+    }
+
+    function saveTasks() {
+      const tasks = [];
+      document.querySelectorAll('#task-list .task-container').forEach(task => {
+        const isCompleted = task.classList.contains('completed');
+        const text = task.querySelector('.task-text').textContent.split('•')[0].trim();
+        const dateEl = task.querySelector('.task-text span:nth-child(2)');
+        const date = dateEl ? dateEl.textContent.trim().replace(/^\D+/g, '') : '';
+        const priority = task.querySelector('.task-text span').className.replace('priority-', '');
+        tasks.push({ text, completed: isCompleted, date, priority });
+      });
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function filterTasks(filter) {
+      const tasks = document.querySelectorAll('#task-list .task-container');
+      tasks.forEach(task => {
+        if (filter === 'all') {
+          task.style.display = 'flex';
+        } else if (filter === 'pending') {
+          task.style.display = task.classList.contains('completed') ? 'none' : 'flex';
+        } else if (filter === 'completed') {
+          task.style.display = task.classList.contains('completed') ? 'flex' : 'none';
+        }
+      });
+    }
+
+    function updateTaskCount() {
+      const pending = document.querySelectorAll('#task-list .task-container:not(.completed)').length;
+      document.getElementById('task-count').textContent = `Tienes ${pending} tarea(s) pendiente(s).`;
+    }
+
+    function renderCalendar() {
+      const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio',
+        'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+
+      document.getElementById('calendar-month').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+      const calendarDisplay = document.getElementById('calendar-display');
+      calendarDisplay.innerHTML = '';
+
+      let dayCounter = 1;
+      for (let i = 0; i < 6; i++) {
+        const row = document.createElement('div');
+        row.className = 'calendar';
+        for (let j = 0; j < 7; j++) {
+          const dayCell = document.createElement('div');
+          if (i === 0 && j < firstDay || dayCounter > daysInMonth) {
+            row.appendChild(dayCell);
+          } else {
+            dayCell.textContent = dayCounter;
+            dayCell.className = 'calendar-day';
+            if (
+              dayCounter === currentDate.getDate() &&
+              currentMonth === currentDate.getMonth() &&
+              currentYear === currentDate.getFullYear()
+            ) {
+              dayCell.classList.add('today');
+            }
+            // Agregar funcionalidad de selección
+            dayCell.addEventListener('click', () => {
+              document.querySelectorAll('.calendar-day.selected').forEach(el => el.classList.remove('selected'));
+              dayCell.classList.add('selected');
+            });
+
+            // Contar tareas por día
+            const today = new Date();
+            const yearMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+            const dayStr = `${yearMonth}-${String(dayCounter).padStart(2, '0')}`;
+
+            const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+            const dayTasks = tasks.filter(t => t.date === dayStr);
+            if (dayTasks.length > 0) {
+              const badge = document.createElement('div');
+              badge.className = 'task-count-badge';
+              badge.textContent = dayTasks.length;
+              dayCell.appendChild(badge);
+            }
+
+            row.appendChild(dayCell);
+            dayCounter++;
+          }
+        }
+        calendarDisplay.appendChild(row);
+      }
+    }
+
+    function changeMonth(direction) {
+      currentMonth += direction;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      } else if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+      renderCalendar();
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle('dark-mode');
+      const btn = document.getElementById('theme-toggle');
+      if (document.body.classList.contains('dark-mode')) {
+        btn.textContent = '☀️';
+      } else {
+        btn.textContent = '🌙';
+      }
+    }
+
+    function showNotification(message) {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.classList.remove('hidden');
+      setTimeout(() => {
+        notification.classList.add('hidden');
+      }, 2000);
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const msg = input.value.trim();
+      if (msg) {
+        const box = document.getElementById('chat-box');
+        const userMsg = document.createElement('div');
+        userMsg.className = 'chat-msg user';
+        userMsg.textContent = msg;
+        box.appendChild(userMsg);
+
+        const botMsg = document.createElement('div');
+        botMsg.className = 'chat-msg ai';
+        botMsg.textContent = 'Esto es una respuesta demo.';
+        box.appendChild(botMsg);
+
+        input.value = '';
+        box.scrollTop = box.scrollHeight;
+      }
+    }
+
+    function dragOverHandler(ev) {
+      ev.preventDefault();
+    }
+
+    window.onload = () => {
+      loadTasks();
+      renderCalendar();
+    };
+  </script>
+</body>
 </html>
